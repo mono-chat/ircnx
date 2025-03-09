@@ -2,17 +2,19 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::RwLock;
 use std::collections::HashMap;
-use crate::{handle_connection::handle_connection};
+use crate::{server::handle_connection};
 
-mod handle_connection;
+mod server;
 mod user;
+mod commands;
+mod connection;
 
 type UserList = Arc<RwLock<HashMap<std::net::SocketAddr, user::User>>>;
 
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let hostname: &str = "localhost";
+    let hostname: &str = "metal";
     let port = 6667;
     let local_addr = format!("{}:{}", hostname, port);
 

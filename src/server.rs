@@ -1,9 +1,7 @@
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use crate::handle_connection::commands::mode;
+use crate::commands::{ircvers, mode, nick};
+use crate::connection::Connection;
 use crate::user::{User, UserList};
-mod commands {
-    pub mod mode;
-}
 
 pub async fn handle_connection(
     mut socket: tokio::net::TcpStream,
@@ -12,10 +10,18 @@ pub async fn handle_connection(
 ) {
     println!("Handling connection from: {}", addr);
 
+    let mut user = User {
+        addr,
+        nickname: None,
+        connection: Connection::new(
+            socket,
+        ),
+    };
+
     // Add the user to the global list
     {
         let mut user_list = users.write().await;
-        user_list.insert(addr, User { addr });
+        user_list.insert(addr, &user);
         println!("User {} added", addr);
     }
 
@@ -23,14 +29,15 @@ pub async fn handle_connection(
 
     loop {
         // Read data from the socket
-        match socket.read(&mut buffer).await {
+        match user.connection.read(&mut buffer).await {
             Ok(n) if n == 0 => {
                 println!("Connection from {} closed", addr);
                 break; // Connection closed gracefully
             }
             Ok(n) => {
                 // Convert buffer to a string
-                if let Ok(message) = String::from_utf8(buffer[..n].to_vec()) {
+                let newBuffer = buffer[..n].to_vec();
+                let message = String::from_utf8_lossy(&newBuffer);
                     println!("Received message from {}: {}", addr, message);
 
                     // Split the message by spaces
@@ -39,32 +46,29 @@ pub async fn handle_connection(
                     // Print the split parts (for now, just display them)
                     println!("Split parts: {:?}", parts);
 
-                    // Echo the data back to the client
-                    if let Err(e) = socket.write_all(message.as_bytes()).await {
-                        eprintln!("Failed to write to socket {}: {}", addr, e);
-                        break;
-                    }
-
                     // Example: Handle specific commands (you can implement actual logic here)
                     if let Some(command) = parts.get(0) {
                         match command.to_lowercase().as_str() {
                             "mode" => {
-                                // Call the hello handler
-                                mode::execute(&mut socket, &addr).await;
+                                mode::execute(user).await;
                             }
                             "quit" => {
                                 println!("Client {} requested to quit", addr);
                                 break; // Exit the loop and close the connection
+                            }
+                            "nick" => {
+                                nick::execute(&mut socket, &addr, &parts, &users).await;
+                                break;
+                            }
+                            "ircvers" => {
+                                ircvers::execute(&mut socket, &addr).await;
                             }
                             _ => {
                                 println!("Unknown command from {}: {}", addr, command);
                             }
                         }
                     }
-                } else {
-                    // Invalid UTF-8 data received
-                    eprintln!("Received invalid UTF-8 data from {}", addr);
-                }
+
             }
             Err(e) => {
                 eprintln!("Failed to read from socket {}: {}", addr, e);
