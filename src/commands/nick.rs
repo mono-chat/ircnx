@@ -1,7 +1,7 @@
-use tokio::net::TcpStream;
-use tokio::io::AsyncWriteExt;
-use std::net::SocketAddr;
 use crate::user::UserList;
+use std::net::SocketAddr;
+use tokio::io::AsyncWriteExt;
+use tokio::net::TcpStream;
 
 pub async fn execute(socket: &mut TcpStream, addr: &SocketAddr, parts: &[&str], users: &UserList) {
     if let Some(nickname) = parts.get(1) {
@@ -23,4 +23,3 @@ pub async fn execute(socket: &mut TcpStream, addr: &SocketAddr, parts: &[&str], 
         }
     }
 }
-

@@ -1,6 +1,6 @@
-use tokio::net::TcpStream;
-use tokio::io::AsyncWriteExt;
 use std::net::SocketAddr;
+use tokio::io::AsyncWriteExt;
+use tokio::net::TcpStream;
 
 pub async fn execute(socket: &mut TcpStream, addr: &SocketAddr) {
     println!("Client {} requested the IRC version", addr);

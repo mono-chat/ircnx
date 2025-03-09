@@ -1,7 +1,7 @@
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use crate::commands::{ircvers, mode, nick};
 use crate::connection::Connection;
 use crate::user::{User, UserList};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 pub async fn handle_connection(
     mut socket: tokio::net::TcpStream,
@@ -13,9 +13,7 @@ pub async fn handle_connection(
     let mut user = User {
         addr,
         nickname: None,
-        connection: Connection::new(
-            socket,
-        ),
+        connection: Connection::new(socket),
     };
 
     // Add the user to the global list
@@ -38,37 +36,36 @@ pub async fn handle_connection(
                 // Convert buffer to a string
                 let newBuffer = buffer[..n].to_vec();
                 let message = String::from_utf8_lossy(&newBuffer);
-                    println!("Received message from {}: {}", addr, message);
+                println!("Received message from {}: {}", addr, message);
 
-                    // Split the message by spaces
-                    let parts: Vec<&str> = message.split_whitespace().collect();
+                // Split the message by spaces
+                let parts: Vec<&str> = message.split_whitespace().collect();
 
-                    // Print the split parts (for now, just display them)
-                    println!("Split parts: {:?}", parts);
+                // Print the split parts (for now, just display them)
+                println!("Split parts: {:?}", parts);
 
-                    // Example: Handle specific commands (you can implement actual logic here)
-                    if let Some(command) = parts.get(0) {
-                        match command.to_lowercase().as_str() {
-                            "mode" => {
-                                mode::execute(user).await;
-                            }
-                            "quit" => {
-                                println!("Client {} requested to quit", addr);
-                                break; // Exit the loop and close the connection
-                            }
-                            "nick" => {
-                                nick::execute(&mut socket, &addr, &parts, &users).await;
-                                break;
-                            }
-                            "ircvers" => {
-                                ircvers::execute(&mut socket, &addr).await;
-                            }
-                            _ => {
-                                println!("Unknown command from {}: {}", addr, command);
-                            }
+                // Example: Handle specific commands (you can implement actual logic here)
+                if let Some(command) = parts.get(0) {
+                    match command.to_lowercase().as_str() {
+                        "mode" => {
+                            mode::execute(user).await;
+                        }
+                        "quit" => {
+                            println!("Client {} requested to quit", addr);
+                            break; // Exit the loop and close the connection
+                        }
+                        "nick" => {
+                            nick::execute(&mut socket, &addr, &parts, &users).await;
+                            break;
+                        }
+                        "ircvers" => {
+                            ircvers::execute(&mut socket, &addr).await;
+                        }
+                        _ => {
+                            println!("Unknown command from {}: {}", addr, command);
                         }
                     }
-
+                }
             }
             Err(e) => {
                 eprintln!("Failed to read from socket {}: {}", addr, e);
@@ -76,7 +73,6 @@ pub async fn handle_connection(
             }
         }
     }
-
 
     // Remove the user from the global list
     {

@@ -1,16 +1,15 @@
+use crate::server::handle_connection;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::RwLock;
-use std::collections::HashMap;
-use crate::{server::handle_connection};
 
-mod server;
-mod user;
 mod commands;
 mod connection;
+mod server;
+mod user;
 
 type UserList = Arc<RwLock<HashMap<std::net::SocketAddr, user::User>>>;
-
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
