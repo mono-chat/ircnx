@@ -1,9 +1,6 @@
-use crate::user::{User, UserList};
-use std::net::SocketAddr;
-use tokio::io::AsyncWriteExt;
-use tokio::net::TcpStream;
+use crate::user::User;
 
-pub async fn execute(user: &mut User, parts: &[&str], users: &UserList) {
+pub async fn execute(user: &mut User, parts: &[&str]) {
     if let Some(nickname) = parts.get(1) {
         match user.nickname {
             Some(ref old_nickname) => {

@@ -9,7 +9,7 @@ pub struct User {
     pub addr: SocketAddr,
     pub nickname: Option<String>,
     pub connection: Connection,
-    pub hopcount: u32,
+    //pub hopcount: u32,
 }
 
 pub type UserList = Arc<RwLock<HashMap<SocketAddr, User>>>;

@@ -1,7 +1,3 @@
-use std::net::SocketAddr;
-use tokio::io::AsyncWriteExt;
-use tokio::net::TcpStream;
-
 use crate::user::User;
 
 pub async fn execute(user: &mut User) {

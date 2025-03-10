@@ -1,7 +1,4 @@
 use crate::user::User;
-use std::net::SocketAddr;
-use tokio::io::AsyncWriteExt;
-use tokio::net::TcpStream;
 
 pub async fn execute(user: &mut User) {
     println!("Handling 'mode' command from {}", user.addr);

@@ -1,20 +1,19 @@
 use crate::commands::{ircvers, mode, nick};
 use crate::connection::Connection;
 use crate::user::{User, UserList};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 pub async fn handle_connection(
-    mut socket: tokio::net::TcpStream,
+    socket: tokio::net::TcpStream,
     addr: std::net::SocketAddr,
     users: UserList,
 ) {
     println!("Handling connection from: {}", addr);
 
-    let mut user = User {
+    let user = User {
         addr,
         nickname: None,
         connection: Connection::new(socket),
-        hopcount: 0, // Direct connection
+        //hopcount: 0, // Direct connection
     };
 
     // Add the user to the global list
@@ -37,8 +36,8 @@ pub async fn handle_connection(
             }
             Ok(n) => {
                 // Convert buffer to a string
-                let newBuffer = buffer[..n].to_vec();
-                let message = String::from_utf8_lossy(&newBuffer);
+                let new_buffer = buffer[..n].to_vec();
+                let message = String::from_utf8_lossy(&new_buffer);
                 println!("Received message from {}: {}", addr, message);
 
                 // Split the message by spaces
@@ -58,7 +57,7 @@ pub async fn handle_connection(
                             break; // Exit the loop and close the connection
                         }
                         "nick" => {
-                            nick::execute(user, &parts, &users).await;
+                            nick::execute(user, &parts).await;
                             break;
                         }
                         "ircvers" => {

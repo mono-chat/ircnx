@@ -1,7 +1,4 @@
-use std::collections::HashMap;
-use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::sync::RwLock;
 
 #[derive(Debug)]
 pub struct Connection {
@@ -21,8 +18,8 @@ impl Connection {
 
     pub async fn write(&mut self, data: &[u8]) -> Result<(), tokio::io::Error> {
         match self.socket.write_all(data).await {
-            (Ok(_)) => Ok(()),
-            (Err(e)) => {
+            Ok(_) => Ok(()),
+            Err(e) => {
                 eprintln!("Failed to send response to socket {}: {}", self.addr, e);
                 Err(e)
             }
