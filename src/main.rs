@@ -1,4 +1,4 @@
-use crate::server::handle_connection;
+use crate::listener::handle_connection;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -6,7 +6,7 @@ use tokio::sync::RwLock;
 
 mod commands;
 mod connection;
-mod server;
+mod listener;
 mod user;
 
 type UserList = Arc<RwLock<HashMap<std::net::SocketAddr, user::User>>>;
