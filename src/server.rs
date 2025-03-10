@@ -14,18 +14,21 @@ pub async fn handle_connection(
         addr,
         nickname: None,
         connection: Connection::new(socket),
+        hopcount: 0, // Direct connection
     };
 
     // Add the user to the global list
     {
         let mut user_list = users.write().await;
-        user_list.insert(addr, &user);
+        user_list.insert(addr, user);
         println!("User {} added", addr);
     }
 
     let mut buffer = [0; 1024];
 
     loop {
+        let mut user_list = users.write().await;
+        let user = user_list.get_mut(&addr).unwrap();
         // Read data from the socket
         match user.connection.read(&mut buffer).await {
             Ok(n) if n == 0 => {
@@ -55,11 +58,11 @@ pub async fn handle_connection(
                             break; // Exit the loop and close the connection
                         }
                         "nick" => {
-                            nick::execute(&mut socket, &addr, &parts, &users).await;
+                            nick::execute(user, &parts, &users).await;
                             break;
                         }
                         "ircvers" => {
-                            ircvers::execute(&mut socket, &addr).await;
+                            ircvers::execute(user).await;
                         }
                         _ => {
                             println!("Unknown command from {}: {}", addr, command);

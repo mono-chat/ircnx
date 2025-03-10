@@ -13,7 +13,7 @@ type UserList = Arc<RwLock<HashMap<std::net::SocketAddr, user::User>>>;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let hostname: &str = "metal";
+    let hostname: &str = "0.0.0.0";
     let port = 6667;
     let local_addr = format!("{}:{}", hostname, port);
 

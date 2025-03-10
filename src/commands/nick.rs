@@ -1,25 +1,32 @@
-use crate::user::UserList;
+use crate::user::{User, UserList};
 use std::net::SocketAddr;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 
-pub async fn execute(socket: &mut TcpStream, addr: &SocketAddr, parts: &[&str], users: &UserList) {
+pub async fn execute(user: &mut User, parts: &[&str], users: &UserList) {
     if let Some(nickname) = parts.get(1) {
-        {
-            let mut user_list = users.write().await;
-            if let Some(user) = user_list.get_mut(&addr) {
-                user.nickname = Some(nickname.to_string());
-                println!("User {} set their nickname to {}", addr, nickname);
+        match user.nickname {
+            Some(ref old_nickname) => {
+                println!("User {} set their nickname to {}", old_nickname, nickname);
+            }
+            None => {
+                // Registration?
+                println!("User set their nickname to {}", nickname);
             }
         }
+        user.nickname = Some(nickname.to_string());
+
         let nick_ack_message = format!("Nickname set to: {}\n", nickname);
-        if let Err(e) = socket.write_all(nick_ack_message.as_bytes()).await {
-            eprintln!("Failed to send nickname acknowledgment to {}: {}", addr, e);
+        if let Err(e) = user.connection.write(nick_ack_message.as_bytes()).await {
+            eprintln!(
+                "Failed to send nickname acknowledgment to {}: {}",
+                user.connection.addr, e
+            );
         }
     } else {
         let error_message = "Error: No nickname provided. Usage: nick <nickname>\n";
-        if let Err(e) = socket.write_all(error_message.as_bytes()).await {
-            eprintln!("Failed to send error to {}: {}", addr, e);
+        if let Err(e) = user.connection.write(error_message.as_bytes()).await {
+            eprintln!("Failed to send error to {}: {}", user.connection.addr, e);
         }
     }
 }

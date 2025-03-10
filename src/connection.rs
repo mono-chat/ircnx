@@ -20,11 +20,12 @@ impl Connection {
     }
 
     pub async fn write(&mut self, data: &[u8]) -> Result<(), tokio::io::Error> {
-        if let Err(e) = self.socket.write_all(data.as_bytes()).await {
-            eprintln!(
-                "Failed to send response to socket {}: {}",
-                , self.addr, e
-            );
+        match self.socket.write_all(data).await {
+            (Ok(_)) => Ok(()),
+            (Err(e)) => {
+                eprintln!("Failed to send response to socket {}: {}", self.addr, e);
+                Err(e)
+            }
         }
     }
 }
