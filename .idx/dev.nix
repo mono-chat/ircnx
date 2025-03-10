@@ -19,7 +19,7 @@
     extensions = [
       "rust-lang.rust-analyzer"
       "tamasfe.even-better-toml"
-      "serayuzgur.crates"
+      "fill-labs.dependi"
       "vadimcn.vscode-lldb"
     ];
     workspace = {
