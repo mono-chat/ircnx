@@ -1,0 +1,51 @@
+use std::collections::HashMap;
+
+struct Address { // Real address
+    ip: String,
+    hostname: Option<String>,
+    servername: Option<String>
+}
+
+struct Client {
+    address: Address,
+}
+
+struct User {
+    address: Address,
+    nickname: String,
+    servername: String,
+    username: String,
+    vhost: Option<String>, // E.g. GateKeeper or "this.is.my.cool.vhost"
+    hop_count: i8, // here or another place? here.
+    channels: Vec::new::<Channel>(),
+}
+
+impl User {
+    fn get_hostmasks(&self) -> String {
+        let mut hostmasks = Vec::new::<String>();
+
+        //jd!user@127.0.0.1 // jd!user@::1
+        hostmasks.push(format!("{}!{}@{}${}", self.nickname, self.username, self.address.ip, self.servername));
+
+        //jd!user@localhost (if address.hostname exists)
+        if (self.address.hostname.is_some()) {
+            hostmasks.push(format!("{}!{}@{}${}", self.nickname, self.username, self.address.hostname.unwrap(), self.servername));
+        }
+
+        //jd!user@vhost (if vhost exists)
+        if (self.vhost.is_some()) {
+            hostmasks.push(format!("{}!{}@{}${}", self.nickname, self.username, self.vhost.unwrap(), self.servername));
+        }
+    }
+}
+
+struct Channel {
+    users: HashMap<String, User>
+}
+
+struct Server {
+    servername: String,
+    bind_ip: String,
+    bind_port: u16,
+    auth_packages: String,
+}

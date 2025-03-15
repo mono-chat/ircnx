@@ -1,24 +1,14 @@
 use crate::listener::handle_connection;
-use std::collections::HashMap;
-use std::sync::Arc;
 use tokio::net::TcpListener;
-use tokio::sync::RwLock;
 
-mod commands;
 mod connection;
 mod listener;
-mod user;
-
-type UserList = Arc<RwLock<HashMap<std::net::SocketAddr, user::User>>>;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let hostname: &str = "0.0.0.0";
     let port = 6667;
     let local_addr = format!("{}:{}", hostname, port);
-
-    // Shared state for connected users
-    let users: UserList = Arc::new(RwLock::new(HashMap::new()));
 
     // Bind the server to a local address
     let listener = TcpListener::bind(&local_addr).await?;
@@ -29,10 +19,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         match listener.accept().await {
             Ok((socket, addr)) => {
                 println!("New connection from: {}", addr);
-                let users = Arc::clone(&users);
                 // Spawn a task to handle the connection
                 tokio::spawn(async move {
-                    handle_connection(socket, addr, users).await;
+                    handle_connection(socket, addr).await;
                 });
             }
             Err(e) => {
