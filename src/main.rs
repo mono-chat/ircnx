@@ -1,8 +1,9 @@
-use crate::listener::handle_connection;
-use tokio::net::TcpListener;
+mod client;
+mod connections;
+mod channels;
 
-mod connection;
-mod listener;
+use tokio::net::TcpListener;
+use crate::client::handle_connection;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -20,6 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Ok((socket, addr)) => {
                 println!("New connection from: {}", addr);
                 // Spawn a task to handle the connection
+
                 tokio::spawn(async move {
                     handle_connection(socket, addr).await;
                 });
