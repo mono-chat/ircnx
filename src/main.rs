@@ -1,32 +1,65 @@
-use crate::listener::handle_connection;
-use tokio::net::TcpListener;
+pub mod channels;
+mod config;
+pub mod connections;
 
-mod connection;
-mod listener;
+// We need to clean this up.
+mod client;
+use client::handle_connection;
+
+use crate::channels::*;
+use crate::config::*;
+use crate::connections::*;
+
+use tokio::net::TcpListener;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let hostname: &str = "0.0.0.0";
-    let port = 6667;
-    let local_addr = format!("{}:{}", hostname, port);
+    // Load the configuration file
+    let config = Config::load_from_file("config.toml")?;
+    println!("Server Name: {}", config.server_name);
 
-    // Bind the server to a local address
-    let listener = TcpListener::bind(&local_addr).await?;
-    println!("Server is running on {}", &local_addr);
+    // TODO: Loop through all listen addresses. For now, we're just using #1
+    let addresses = &config.listen;
+    listen_on_addresses(addresses).await?;
 
-    loop {
-        // Accept incoming connections
-        match listener.accept().await {
-            Ok((socket, addr)) => {
-                println!("New connection from: {}", addr);
-                // Spawn a task to handle the connection
-                tokio::spawn(async move {
-                    handle_connection(socket, addr).await;
-                });
-            }
-            Err(e) => {
-                eprintln!("Failed to accept connection: {}", e);
-            }
-        }
+    Ok(())
+}
+
+// Todo: Move this to a separate file
+async fn listen_on_addresses(addresses: &Vec<ListenAddr>) -> Result<(), Box<dyn std::error::Error>> {
+    let mut listeners = Vec::new();
+
+    for address in addresses {
+        let addr = format!("{}:{}", address.hostname, address.port);
+        let listener = TcpListener::bind(&addr).await?;
+        println!("Listening on {}", addr);
+        listeners.push(listener);
     }
+
+    let mut tasks = Vec::new();
+
+    for listener in listeners {
+        let task = tokio::spawn(async move {
+            loop {
+                match listener.accept().await {
+                    Ok((socket, addr)) => {
+                        println!("New connection from: {}", addr);
+                        tokio::spawn(async move {
+                            handle_connection(socket, addr).await;
+                        });
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to accept connection: {}", e);
+                    }
+                }
+            }
+        });
+        tasks.push(task);
+    }
+
+    for task in tasks {
+        task.await?;
+    }
+
+    Ok(())
 }

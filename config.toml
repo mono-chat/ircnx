@@ -1,0 +1,22 @@
+# - Server Information -
+# TODO
+server_name = "irc.ircclient.dev"
+# TODO
+server_description = "The default ircNX server"
+# TODO
+motd = "Welcome to ExampleServer! This is the Message of the Day that will be displayed to users when they connect."
+# TODO
+network_name = "ircNX"
+
+# - Server Configuration -
+# TODO
+max_clients = 100
+
+[[listen]]
+hostname = "[::]"
+port = 6667
+
+[[listen]]
+hostname = "0.0.0.0"
+port = 6667
+rwar = true
