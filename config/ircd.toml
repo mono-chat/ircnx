@@ -1,0 +1,7 @@
+[[listen]]
+hostname = "0.0.0.0" # Listen on all interfaces (IPv4)
+port = 6667
+
+[[listen]]
+hostname = "::" # Listen on all interfaces (IPv6)
+port = 6667
