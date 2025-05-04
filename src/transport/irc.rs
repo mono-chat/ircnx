@@ -21,10 +21,8 @@
 //     });
 // }
 
-
-
-use std::net::{ TcpListener, TcpStream, ToSocketAddrs };
 use std::io::{Read, Result};
+use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 
 pub struct IrcListener {
     listener: TcpListener,
@@ -55,7 +53,10 @@ const MAX_MESSAGE_SIZE: usize = 8703; // 512 bytes for IRC messages
 
 impl IrcStream {
     fn new(stream: TcpStream) -> Self {
-        Self { stream, buffer: Vec::new() }
+        Self {
+            stream,
+            buffer: Vec::new(),
+        }
     }
 
     // A message size of 8703 covers all IRCv3 messages. We should reduce this to 4610 bytes (IRCv3 client with Message Tags) and 512 bytes (IRC/IRCX client default) depending on client capabilities. 8703 is only required for IRCv3 server-to-server messages.
@@ -65,7 +66,10 @@ impl IrcStream {
         let bytes_read = self.stream.read(&mut temp_buf)?;
 
         if bytes_read == 0 {
-            return Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "Connection closed"));
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::UnexpectedEof,
+                "Connection closed",
+            ));
         }
 
         // Append new data to internal buffer
@@ -79,6 +83,9 @@ impl IrcStream {
         }
 
         // If no complete message is found, continue waiting for more data
-        Err(std::io::Error::new(std::io::ErrorKind::WouldBlock, "Partial message, waiting for more data"))
+        Err(std::io::Error::new(
+            std::io::ErrorKind::WouldBlock,
+            "Partial message, waiting for more data",
+        ))
     }
 }

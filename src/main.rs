@@ -1,9 +1,9 @@
-mod transport;
 mod config;
+mod transport;
 
 use std::thread;
 
-use crate::transport::irc::{IrcListener};
+use crate::transport::irc::IrcListener;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load our configuration
