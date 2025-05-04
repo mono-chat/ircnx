@@ -1,8 +1,11 @@
+mod transport;
 mod config;
 
-use std::net::{IpAddr, TcpListener};
+use std::thread;
 
-fn main() {
+use crate::transport::irc::{IrcListener};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load our configuration
     let settings = config::load().expect("Failed to load configuration");
 
@@ -10,15 +13,42 @@ fn main() {
         eprintln!("No listen configuration found");
         std::process::exit(1);
     }
+
+    let mut handles = Vec::new();
+
     for listen in settings.listen {
-        let listener = TcpListener::bind((listen.hostname.as_str(), listen.port))
+        let listener = IrcListener::bind(((&listen.hostname).as_str(), listen.port))
             .expect("Failed to bind to address");
 
-        let local_address = listener.local_addr().expect("Failed to get local address");
-        let family = match local_address.ip() {
-            IpAddr::V4(_) => "IPv4",
-            IpAddr::V6(_) => "IPv6",
-        };
-        println!("Listening on: {} ({})", local_address.to_string(), family);
+        let handle = thread::spawn(move || {
+            for stream in listener.incoming() {
+                match stream {
+                    Ok(mut irc_stream) => {
+                        println!("New connection!");
+                        loop {
+                            match irc_stream.read() {
+                                Ok(message) => {
+                                    println!("Received IRC message: {}", message);
+                                }
+                                Err(e) => {
+                                    eprintln!("Error reading IRC message: {}", e);
+                                    break; // Exit the loop if there's an error
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => eprintln!("Connection error: {}", e),
+                }
+            }
+        });
+
+        handles.push(handle);
     }
+
+    // Wait for all threads to finish
+    for handle in handles {
+        handle.join().expect("Thread panicked");
+    }
+
+    Ok(())
 }
