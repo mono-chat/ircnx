@@ -5,6 +5,9 @@ use std::thread;
 
 use crate::transport::irc::IrcListener;
 
+// The regex pattern for parsing IRC messages
+const REGEX: &str = r"^ *(?:@(?<tags>[^ ]+) +)?(?::(?<prefix>[^ ]+) +)?(?<command>[^ ]+)(?: +(?<middle>[^: ][^ ]*(?: +[^: ][^ ]*)*))?(?: +:(?<trailing>.*))? *$";
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load our configuration
     let settings = config::load().expect("Failed to load configuration");

@@ -1,0 +1,4 @@
+A valid IRC client should always send "\r\n" delimiter. In the real world, any of the following may be found as a delimiter: "\r", "\n" or "\r\n".
+A command should always be a 3 digit numeric, or string containing only alphabetical characters. In the real world, servers parse almost anything as a command (which is usually not found).
+A prefix should contain a nickname, followed by an optional username and an optional hostname. I'm yet to see a server use only one of username/hostname, it's either all or nothing.
+An IRC message ending in ":Trailing   \r\n" should have the 3 space characters preserved. We support it, but I'm not sure others do.
