@@ -22,7 +22,7 @@
 // }
 
 use std::char::MAX;
-use std::io::{Read, Result};
+use std::io::{Read, Result, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 
 pub struct IrcListener {
@@ -49,9 +49,10 @@ pub struct IrcStream {
     stream: TcpStream,
     buffer: Vec<u8>,
     cursor: u32,
+    is_closed: bool,
 }
 
-const MAX_MESSAGE_SIZE: usize = 8703; // 512 bytes for IRC messages
+const MAX_MESSAGE_SIZE: usize = 8703;
 
 impl IrcStream {
     fn new(stream: TcpStream) -> Self {
@@ -59,7 +60,13 @@ impl IrcStream {
             stream,
             buffer: Vec::new(),
             cursor: 0,
+            is_closed: false,
         }
+    }
+
+    pub fn close(&mut self) -> std::io::Result<()> {
+        self.is_closed = true;
+        self.stream.shutdown(std::net::Shutdown::Both)
     }
 
     // A message size of 8703 covers all IRCv3 messages. We should reduce this to 4610 bytes (IRCv3 client with Message Tags) and 512 bytes (IRC/IRCX client default) depending on client capabilities. 8703 is only required for IRCv3 server-to-server messages.
@@ -68,6 +75,10 @@ impl IrcStream {
     // TODO: Needs improvements. We always read from the beginning of the buffer, which is wasteful. We should keep track of the cursor position and only read from the buffer starting from the cursor position.
     pub fn read(&mut self) -> std::io::Result<String> {
         loop {
+            if self.is_closed {
+                return Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "Connection closed"));
+            }
+
             // Check if there's a complete message in the buffer
             if let Some(pos) = self.buffer.iter().position(|&b| b == b'\r' || b == b'\n') {
                 // Extract message
@@ -100,6 +111,12 @@ impl IrcStream {
                 return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Message too large"));
             }
         }
+    }
+
+    pub fn write(&mut self, message: &str) -> std::io::Result<()> {
+        // We should ensure our message is not larger than the max message size. Print a warning if it is.
+        let message = format!("{}\r\n", message);
+        self.stream.write_all(message.as_bytes())
     }
 
 }

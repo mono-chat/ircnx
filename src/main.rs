@@ -9,7 +9,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load our configuration
     let settings = config::load().expect("Failed to load configuration");
 
-    if settings.listen.is_empty() {
+    if settings.listen.is_empty() { // This shouldn't happen
         eprintln!("No listen configuration found");
         std::process::exit(1);
     }
@@ -31,8 +31,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     println!("Received IRC message: {}", message);
                                 }
                                 Err(e) => {
-                                    eprintln!("Error reading IRC message: {}", e);
-                                    break; // Exit the loop if there's an error
+                                    if e.kind() == std::io::ErrorKind::UnexpectedEof {
+                                        println!("Connection closed");
+                                        break; // Exit the loop if the connection is closed
+                                    } else {
+                                        eprintln!("Error reading IRC message: {}", e);
+                                        break; // Exit the loop if there's an error
+                                    }
                                 }
                             }
                         }
