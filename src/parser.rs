@@ -1,9 +1,9 @@
-use std::{collections::HashMap, string, vec};
 use regex::Regex;
+use std::{collections::HashMap, vec};
 
 #[derive(Debug)]
 pub struct IrcMessage {
-    // tags: Option<HashMap<String, String>>,
+    tags: Option<HashMap<String, String>>,
     source: Option<String>,
     command: String,
     parameters: Vec<String>,
@@ -30,7 +30,8 @@ pub fn parse_irc_message(message: &str) -> Result<IrcMessage, String> {
     // Middle parameters are seperated by spaces, so we need to split them.
     if let Some(middle) = caps.name("middle") {
         middle.as_str().split(' ').for_each(|s| {
-            if !s.is_empty() { // Ensure we don't add empty strings to the parameters vector (if multiple spaces are present)
+            if !s.is_empty() {
+                // Ensure we don't add empty strings to the parameters vector (if multiple spaces are present)
                 parameters.push(s.to_string());
             }
         });
@@ -44,7 +45,7 @@ pub fn parse_irc_message(message: &str) -> Result<IrcMessage, String> {
     let parameters = parameters; // Shadowing, now immutable
 
     Ok(IrcMessage {
-        // tags: parse_tags(caps.name("tags").map(|m| m.as_str())),
+        tags: None,
         source,
         command,
         parameters,

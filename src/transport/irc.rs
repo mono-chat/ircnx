@@ -76,21 +76,23 @@ impl IrcStream {
     pub fn read(&mut self) -> std::io::Result<String> {
         loop {
             if self.is_closed {
-                return Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "Connection closed"));
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::UnexpectedEof,
+                    "Connection closed",
+                ));
             }
 
             // Check if there's a complete message in the buffer
             if let Some(pos) = self.buffer.iter().position(|&b| b == b'\r' || b == b'\n') {
                 // Extract message
                 let message = String::from_utf8_lossy(&self.buffer[..pos]).to_string(); // This is a UTF-8 conversion. Not sure we want this.
-                
+
                 // Remove processed data from buffer (including delimiter)
                 self.buffer.drain(..=pos);
-                
+
                 if message.len() > 0 {
                     return Ok(message); // Return only when a message is ready
-                }
-                else {
+                } else {
                     // If the message is empty, continue to read more data (wasteful, as we start reading from the beginning of the buffer again)
                     continue;
                 }
@@ -101,14 +103,21 @@ impl IrcStream {
             let bytes_read = self.stream.read(&mut temp_buf)?;
 
             if bytes_read == 0 {
-                return Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "Connection closed"));
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::UnexpectedEof,
+                    "Connection closed",
+                ));
             }
 
             // Append new data to buffer
             self.buffer.extend_from_slice(&temp_buf[..bytes_read]);
-            if (self.buffer.len() >= MAX_MESSAGE_SIZE * 2) { // We shouldn't ever reach twice the max message size, since the first message should have been read if it's max size.
+            if (self.buffer.len() >= MAX_MESSAGE_SIZE * 2) {
+                // We shouldn't ever reach twice the max message size, since the first message should have been read if it's max size.
                 self.buffer.clear(); // Clear the buffer if we exceed the max message size
-                return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Message too large"));
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "Message too large",
+                ));
             }
         }
     }
@@ -118,5 +127,4 @@ impl IrcStream {
         let message = format!("{}\r\n", message);
         self.stream.write_all(message.as_bytes())
     }
-
 }

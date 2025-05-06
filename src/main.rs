@@ -13,7 +13,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load our configuration
     let settings = config::load().expect("Failed to load configuration");
 
-    if settings.listen.is_empty() { // This shouldn't happen
+    if settings.listen.is_empty() {
+        // This shouldn't happen
         eprintln!("No listen configuration found");
         std::process::exit(1);
     }
@@ -33,7 +34,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             match irc_stream.read() {
                                 Ok(message) => {
                                     //println!("Received IRC message: {}", message);
-                                    println!("Parsed message: {:?}", parser::parse_irc_message(&message));
+                                    println!(
+                                        "Parsed message: {:?}",
+                                        parser::parse_irc_message(&message)
+                                    );
                                 }
                                 Err(e) => {
                                     if e.kind() == std::io::ErrorKind::UnexpectedEof {
