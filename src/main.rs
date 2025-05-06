@@ -1,4 +1,5 @@
 mod config;
+mod parser;
 mod transport;
 
 use std::thread;
@@ -31,7 +32,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         loop {
                             match irc_stream.read() {
                                 Ok(message) => {
-                                    println!("Received IRC message: {}", message);
+                                    //println!("Received IRC message: {}", message);
+                                    println!("Parsed message: {:?}", parser::parse_irc_message(&message));
                                 }
                                 Err(e) => {
                                     if e.kind() == std::io::ErrorKind::UnexpectedEof {
