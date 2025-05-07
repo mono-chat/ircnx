@@ -17,7 +17,7 @@ pub fn parse_irc_message(message: &str) -> Result<IrcMessage, String> {
     let caps = re.captures(message).ok_or("Invalid message format")?;
 
     let tags = match caps.name("tags") {
-        Some(m) => Some(parse_irc_tags(m.as_str())),
+        Some(m) => parse_irc_tags(m.as_str()),
         None => None,
     };
 
@@ -67,7 +67,7 @@ pub struct IrcTag {
     vendor: Option<String>,
 }
 
-fn parse_irc_tags(tags_str: &str) -> HashMap<String, IrcTag> {
+fn parse_irc_tags(tags_str: &str) -> Option<HashMap<String, IrcTag>> {
     let re = Regex::new(r"(?:(?<key>(?<client_prefix>\+)?(?:(?<vendor>[^=;/]*)/)?(?<key_name>[^=;]*))(?:=(?<value>[^;]*))?)+").unwrap();
 
     let mut tags = HashMap::new();
@@ -78,83 +78,55 @@ fn parse_irc_tags(tags_str: &str) -> HashMap<String, IrcTag> {
         let key = tag.name("key").map(|m| m.as_str().to_string());
         let key_name = tag.name("key_name").map(|m| m.as_str().to_string());
 
-        let value = tag.name("value").map(|m| {
-            let val = m.as_str();
-            if val.is_empty() {
-                None // Normalize empty value to missing value.
-            } else {
-                Some(unescape_irc_tag_value(val))
-            }
-        }).flatten();
-
-        if let Some(key) = key {
-            if key_name#[derive(Debug)]
-            pub struct IrcTag {
-                client_prefix: bool,
-                key: String,
-                key_name: String,
-                value: Option<String>,
-                vendor: Option<String>,
-            }
-            
-            fn parse_irc_tags(tags_str: &str) -> HashMap<String, IrcTag> {
-                let re = Regex::new(r"(?:(?<key>(?<client_prefix>\+)?(?:(?<vendor>[^=;/]*)/)?(?<key_name>[^=;]*))(?:=(?<value>[^;]*))?)+").unwrap();
-            
-                let mut tags = HashMap::new();
-                let caps = re.captures_iter(tags_str);
-            
-                for tag in caps {
-                    let client_prefix: bool = tag.name("client_prefix").is_some();
-                    let key = tag.name("key").map(|m| m.as_str().to_string());
-                    let key_name = tag.name("key_name").map(|m| m.as_str().to_string());
-            
-                    let value = tag.name("value").map(|m| {
-                        let val = m.as_str();
-                        if val.is_empty() {
-                            None // Normalize empty value to missing value.
-                        } else {
-                            Some(unescape_irc_tag_value(val))
-                        }
-                    }).flatten();
-            
-                    if let Some(key) = key {
-                        tags.insert(key.clone(), IrcTag {
-                            client_prefix,
-                            key: key,
-                            key_name: key_name.unwrap_or_default(), // key_name should always be present when key is present
-                            value: value,
-                            vendor: tag.name("vendor").map(|m| m.as_str().to_string()),
-                        });
-                    }
+        let value = tag
+            .name("value")
+            .map(|m| {
+                let val = m.as_str();
+                if val.is_empty() {
+                    None // Normalize empty value to missing value.
+                } else {
+                    Some(unescape_irc_tag_value(val))
                 }
-                tags
-            }
+            })
+            .flatten();
 
-            // Check key_name is valid (matches [A-Za-z0-9-]+).
-            // TODO: Check if vendor is a valid DNS hostname.
-            if key_name.as_ref().map_or(true, |k| Regex::new(r"^[A-Za-z0-9-]+$").unwrap().is_match(k)) {
-                tags.insert(key.clone(), IrcTag {
-                    client_prefix,
-                    key: key,
-                    key_name: key_name.unwrap_or_default(), // key_name should always be Some() when key is Some()
-                    value: value,
-                    vendor: tag.name("vendor").map(|m| m.as_str().to_string()),
-                });
+        // Check key_name is valid (matches [A-Za-z0-9-]+).
+        // TODO: Check if vendor is a valid DNS hostname.
+        if let Some(key) = key {
+            if key_name.as_ref().map_or(true, |k| {
+                Regex::new(r"^[A-Za-z0-9-]+$").unwrap().is_match(k)
+            }) {
+                tags.insert(
+                    key.clone(),
+                    IrcTag {
+                        client_prefix,
+                        key: key,
+                        key_name: key_name.unwrap_or_default(), // key_name should always be Some() when key is Some()
+                        value: value,
+                        vendor: tag.name("vendor").map(|m| m.as_str().to_string()),
+                    },
+                );
             }
         }
     }
-    tags
+    match tags.is_empty() {
+        true => None,
+        false => Some(tags),
+    }
 }
 
 fn escape_irc_tag_value(input: &str) -> String {
-    input.chars().map(|c| match c {
-        ';' => "\\:".to_string(),
-        ' ' => "\\s".to_string(),
-        '\\' => "\\\\".to_string(),
-        '\r' => "\\r".to_string(),
-        '\n' => "\\n".to_string(),
-        _ => c.to_string(),
-    }).collect()
+    input
+        .chars()
+        .map(|c| match c {
+            ';' => "\\:".to_string(),
+            ' ' => "\\s".to_string(),
+            '\\' => "\\\\".to_string(),
+            '\r' => "\\r".to_string(),
+            '\n' => "\\n".to_string(),
+            _ => c.to_string(),
+        })
+        .collect()
 }
 
 fn unescape_irc_tag_value(input: &str) -> String {
