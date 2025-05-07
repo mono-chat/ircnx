@@ -10,6 +10,7 @@ pub struct IrcMessage {
 }
 
 // NOTE: We should only parse the tags if the capability has been negotiated.
+// Tag parser: (?:^|;)(?:(?<key>(?<client_prefix>\+)?(?:(?<vendor>[^=;/]*)/)?(?<key_name>[^=;]*))(?:=(?<value>[^;]*))?)+
 
 pub fn parse_irc_message(message: &str) -> Result<IrcMessage, String> {
     let re = Regex::new(r"^ *(?:@(?<tags>[^ ]+) +)?(?::(?<source>[^ ]+) +)?(?<command>[^ ]+)(?: +(?<middle>[^: ][^ ]*(?: +[^: ][^ ]*)*))?(?: +:(?<trailing>.*))? *$").unwrap();
@@ -50,4 +51,43 @@ pub fn parse_irc_message(message: &str) -> Result<IrcMessage, String> {
         command,
         parameters,
     })
+}
+
+fn escape_ircv3_tag(input: &str) -> String {
+    input.chars().map(|c| match c {
+        ';' => "\\:".to_string(),
+        ' ' => "\\s".to_string(),
+        '\\' => "\\\\".to_string(),
+        '\r' => "\\r".to_string(),
+        '\n' => "\\n".to_string(),
+        _ => c.to_string(),
+    }).collect()
+}
+
+fn unescape_ircv3_tag(input: &str) -> String {
+    let mut output = String::new();
+    let mut chars = input.chars().peekable();
+
+    while let Some(&c) = chars.peek() {
+        if c == '\\' {
+            chars.next(); // Consume the backslash
+            match chars.next() {
+                Some(':') => output.push(';'),
+                Some('s') => output.push(' '),
+                Some('\\') => output.push('\\'),
+                Some('r') => output.push('\r'),
+                Some('n') => output.push('\n'),
+                Some(other) => {
+                    output.push('\\');
+                    output.push(other);
+                }
+                None => output.push('\\'),
+            }
+        } else {
+            output.push(c);
+            chars.next();
+        }
+    }
+
+    output
 }
