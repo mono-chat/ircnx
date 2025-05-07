@@ -3,18 +3,23 @@ use std::{collections::HashMap, vec};
 
 #[derive(Debug)]
 pub struct IrcMessage {
-    tags: Option<HashMap<String, String>>,
+    tags: Option<HashMap<String, IrcTag>>,
     source: Option<String>,
     command: String,
     parameters: Vec<String>,
 }
 
-// NOTE: We should only parse the tags if the capability has been negotiated.
-// Tag parser: (?:^|;)(?:(?<key>(?<client_prefix>\+)?(?:(?<vendor>[^=;/]*)/)?(?<key_name>[^=;]*))(?:=(?<value>[^;]*))?)+
+// TODO: Currently, we parse tags even if the capability is not enabled.
+// This is not ideal, as it adds unnecessary overhead. We should only parse tags if the capability is enabled.
 
 pub fn parse_irc_message(message: &str) -> Result<IrcMessage, String> {
     let re = Regex::new(r"^ *(?:@(?<tags>[^ ]+) +)?(?::(?<source>[^ ]+) +)?(?<command>[^ ]+)(?: +(?<middle>[^: ][^ ]*(?: +[^: ][^ ]*)*))?(?: +:(?<trailing>.*))? *$").unwrap();
     let caps = re.captures(message).ok_or("Invalid message format")?;
+
+    let tags = match caps.name("tags") {
+        Some(m) => Some(parse_irc_tags(m.as_str())),
+        None => None,
+    };
 
     let source = match caps.name("source") {
         Some(m) => Some(m.as_str().to_string()),
@@ -46,14 +51,102 @@ pub fn parse_irc_message(message: &str) -> Result<IrcMessage, String> {
     let parameters = parameters; // Shadowing, now immutable
 
     Ok(IrcMessage {
-        tags: None,
+        tags,
         source,
         command,
         parameters,
     })
 }
 
-fn escape_ircv3_tag(input: &str) -> String {
+#[derive(Debug)]
+pub struct IrcTag {
+    client_prefix: Option<String>,
+    key: String,
+    key_name: String,
+    value: Option<String>,
+    vendor: Option<String>,
+}
+
+fn parse_irc_tags(tags_str: &str) -> HashMap<String, IrcTag> {
+    let re = Regex::new(r"(?:(?<key>(?<client_prefix>\+)?(?:(?<vendor>[^=;/]*)/)?(?<key_name>[^=;]*))(?:=(?<value>[^;]*))?)+").unwrap();
+
+    let mut tags = HashMap::new();
+    let caps = re.captures_iter(tags_str);
+
+    for tag in caps {
+        let client_prefix = tag.name("client_prefix").map(|m| m.as_str().to_string());
+        let key = tag.name("key").map(|m| m.as_str().to_string());
+        let key_name = tag.name("key_name").map(|m| m.as_str().to_string());
+
+        let value = tag.name("value").map(|m| {
+            let val = m.as_str();
+            if val.is_empty() {
+                None // Normalize empty value to missing value.
+            } else {
+                Some(unescape_irc_tag_value(val))
+            }
+        }).flatten();
+
+        if let Some(key) = key {
+            if key_name#[derive(Debug)]
+            pub struct IrcTag {
+                client_prefix: bool,
+                key: String,
+                key_name: String,
+                value: Option<String>,
+                vendor: Option<String>,
+            }
+            
+            fn parse_irc_tags(tags_str: &str) -> HashMap<String, IrcTag> {
+                let re = Regex::new(r"(?:(?<key>(?<client_prefix>\+)?(?:(?<vendor>[^=;/]*)/)?(?<key_name>[^=;]*))(?:=(?<value>[^;]*))?)+").unwrap();
+            
+                let mut tags = HashMap::new();
+                let caps = re.captures_iter(tags_str);
+            
+                for tag in caps {
+                    let client_prefix: bool = tag.name("client_prefix").is_some();
+                    let key = tag.name("key").map(|m| m.as_str().to_string());
+                    let key_name = tag.name("key_name").map(|m| m.as_str().to_string());
+            
+                    let value = tag.name("value").map(|m| {
+                        let val = m.as_str();
+                        if val.is_empty() {
+                            None // Normalize empty value to missing value.
+                        } else {
+                            Some(unescape_irc_tag_value(val))
+                        }
+                    }).flatten();
+            
+                    if let Some(key) = key {
+                        tags.insert(key.clone(), IrcTag {
+                            client_prefix,
+                            key: key,
+                            key_name: key_name.unwrap_or_default(), // key_name should always be present when key is present
+                            value: value,
+                            vendor: tag.name("vendor").map(|m| m.as_str().to_string()),
+                        });
+                    }
+                }
+                tags
+            }
+
+            // Check key_name is valid (matches [A-Za-z0-9-]+).
+            // TODO: Check if vendor is a valid DNS hostname.
+            if key_name.as_ref().map_or(true, |k| Regex::new(r"^[A-Za-z0-9-]+$").unwrap().is_match(k)) {
+                tags.insert(key.clone(), IrcTag {
+                    client_prefix,
+                    key: key,
+                    key_name: key_name.unwrap_or_default(), // key_name should always be Some() when key is Some()
+                    value: value,
+                    vendor: tag.name("vendor").map(|m| m.as_str().to_string()),
+                });
+            }
+        }
+    }
+    tags
+}
+
+fn escape_irc_tag_value(input: &str) -> String {
     input.chars().map(|c| match c {
         ';' => "\\:".to_string(),
         ' ' => "\\s".to_string(),
@@ -64,7 +157,7 @@ fn escape_ircv3_tag(input: &str) -> String {
     }).collect()
 }
 
-fn unescape_ircv3_tag(input: &str) -> String {
+fn unescape_irc_tag_value(input: &str) -> String {
     let mut output = String::new();
     let mut chars = input.chars().peekable();
 
@@ -81,7 +174,7 @@ fn unescape_ircv3_tag(input: &str) -> String {
                     output.push('\\');
                     output.push(other);
                 }
-                None => output.push('\\'),
+                None => break,
             }
         } else {
             output.push(c);
