@@ -1,8 +1,8 @@
-use tokio_stream::{wrappers::TcpListenerStream, Stream};
+use tokio::io::AsyncReadExt;
+use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_stream::StreamExt;
-use tokio::io::AsyncWriteExt;
-use tokio::io::AsyncReadExt;
+use tokio_stream::{Stream, wrappers::TcpListenerStream};
 
 pub struct IrcListener {
     listener: TcpListener,
@@ -15,9 +15,8 @@ impl IrcListener {
     }
 
     pub fn incoming(self) -> impl Stream<Item = Result<IrcStream, std::io::Error>> {
-        TcpListenerStream::new(self.listener).map(|result| {
-            result.map(|tcp_stream| IrcStream::new(tcp_stream))
-        })
+        TcpListenerStream::new(self.listener)
+            .map(|result| result.map(|tcp_stream| IrcStream::new(tcp_stream)))
     }
 }
 
