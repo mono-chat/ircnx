@@ -1,8 +1,6 @@
-use tokio::io::AsyncReadExt;
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
-use tokio_stream::StreamExt;
-use tokio_stream::{Stream, wrappers::TcpListenerStream};
+use tokio_stream::{Stream, StreamExt, wrappers::TcpListenerStream};
 
 pub struct IrcListener {
     listener: TcpListener,

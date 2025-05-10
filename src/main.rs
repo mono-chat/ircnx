@@ -2,14 +2,8 @@ mod config;
 mod parser;
 mod transport;
 
-use std::thread;
-
-use tokio_stream::StreamExt;
-
 use crate::transport::irc::IrcListener;
-
-// The regex pattern for parsing IRC messages
-const REGEX: &str = r"^ *(?:@(?<tags>[^ ]+) +)?(?::(?<prefix>[^ ]+) +)?(?<command>[^ ]+)(?: +(?<middle>[^: ][^ ]*(?: +[^: ][^ ]*)*))?(?: +:(?<trailing>.*))? *$";
+use tokio_stream::StreamExt;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
